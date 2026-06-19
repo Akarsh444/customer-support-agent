@@ -1,0 +1,10 @@
+langchain
+langchain-google-genai
+langchain-community
+langchain-mcp-adapters
+databricks-sql-connector
+fastmcp
+fastapi
+uvicorn
+python-dotenv
+langgraph
