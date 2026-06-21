@@ -55,9 +55,8 @@ async def run_data_agent(question: str) -> str:
     client = MultiServerMCPClient(
         {
             "databricks-sql": {
-                "command": r"C:\customer-support-agent\backend\venv311\Scripts\python.exe",
-                "args": [SQL_SERVER_PATH],
-                "transport": "stdio",
+                "url": "http://127.0.0.1:8000/mcp",
+                "transport": "streamable_http",
             }
         }
     )
@@ -71,7 +70,14 @@ async def run_data_agent(question: str) -> str:
     {"messages": [{"role": "user", "content": question}]}
     )
 
-    return result["messages"][-1].content
+    final_message = result["messages"][-1]
+    content = final_message.content
+
+    # Gemini returns content as a list of blocks; extract just the text
+    if isinstance(content, list):
+        text_parts = [block.get("text", "") for block in content if isinstance(block, dict)]
+        return "\n".join(text_parts).strip()
+    return content
 
 
 # Quick standalone test
