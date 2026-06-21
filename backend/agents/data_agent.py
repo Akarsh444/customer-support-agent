@@ -83,7 +83,7 @@ async def run_data_agent(question: str) -> str:
 # Quick standalone test
 if __name__ == "__main__":
     async def main():
-        question = "Why was Acme Corp overbilled in May 2025?"
+        question = "Which customer had the largest overbilling and why?"
         print(f"Question: {question}\n")
         answer = await run_data_agent(question)
         print(f"Answer:\n{answer}")

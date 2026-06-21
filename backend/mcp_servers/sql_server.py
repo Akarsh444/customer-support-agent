@@ -8,6 +8,8 @@ import os
 import sys
 import datetime
 import asyncio
+import time
+from databricks.sdk import WorkspaceClient
 from dotenv import load_dotenv
 from databricks import sql
 from fastmcp import FastMCP
@@ -19,6 +21,7 @@ DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
 DATABRICKS_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
 CATALOG = os.getenv("DATABRICKS_CATALOG", "workspace")
 SCHEMA = os.getenv("DATABRICKS_SCHEMA", "support_agent")
+GENIE_SPACE_ID = os.getenv("DATABRICKS_GENIE_SPACE_ID")
 
 # --- File-based logging (NEVER print to stdout in an MCP stdio server) ---
 LOG_PATH = os.path.join(os.path.dirname(__file__), "mcp_debug.log")
@@ -103,6 +106,56 @@ async def get_billing_issues() -> list[dict]:
         WHERE status = 'Overbilled'
     """
     return await asyncio.to_thread(run_query, query, [])
+
+@mcp.tool()
+async def ask_genie(question: str) -> dict:
+    """
+    Ask an open-ended natural-language question about customer billing,
+    invoices, accounts, or support tickets. Use this for analytical or
+    comparative questions that the specific tools cannot answer — for
+    example: 'which customer had the most overbilling', 'average billed
+    amount by plan', 'how many tickets are still open'. Genie converts
+    the question to SQL and runs it against the support data.
+    """
+    log(f"ask_genie: called with question={question}")
+    return await asyncio.to_thread(_run_genie, question)
+
+
+def _run_genie(question: str) -> dict:
+    """Internal helper — blocking Genie call via the Databricks SDK."""
+    log("_run_genie: entered")
+
+    # The SDK reads DATABRICKS_HOST and DATABRICKS_TOKEN from env automatically,
+    # but we pass them explicitly to be safe.
+    client = WorkspaceClient(
+        host=f"https://{DATABRICKS_HOST}",
+        token=DATABRICKS_TOKEN,
+    )
+
+    log("_run_genie: starting conversation")
+    # Ask the question — this starts a Genie conversation and waits for completion.
+    # create_message_and_wait handles the polling internally for us.
+    conversation = client.genie.start_conversation_and_wait(
+        space_id=GENIE_SPACE_ID,
+        content=question,
+    )
+
+    log(f"_run_genie: got response, status complete")
+
+    # Extract the text answer from Genie's response
+    answer_text = ""
+    if conversation.attachments:
+        for attachment in conversation.attachments:
+            if attachment.text:
+                answer_text += attachment.text.content or ""
+
+    # If Genie produced a SQL query + results, note that too
+    result = {
+        "answer": answer_text or "Genie returned no text answer.",
+    }
+    log(f"_run_genie: returning answer")
+    return result
+
 
 if __name__ == "__main__":
     mcp.run(transport="http", host="127.0.0.1", port=8000)
