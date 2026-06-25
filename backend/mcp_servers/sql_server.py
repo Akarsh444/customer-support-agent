@@ -32,12 +32,27 @@ def log(msg: str):
 
 log("=== sql_server.py started ===")
 
+# Create the MCP server. Tools registered below with @mcp.tool() are
+# exposed to any agent that connects. The name is just an identifier.
 mcp = FastMCP("databricks-sql-server")
 
+
+
+# Runs a parameterised SQL query against Databricks and returns rows as
+# a list of dicts (column name -> value). This is the ONLY place that
+# actually touches Databricks. It is synchronous and blocking, so the
+# async tools below call it via asyncio.to_thread (see note there).
+# Parameters are passed separately (the `?` placeholders) — never string
+# concatenation — to prevent SQL injection.
 
 def run_query(query: str, params: list) -> list[dict]:
     """Internal helper — synchronous blocking Databricks call."""
     log("run_query: entered")
+
+    # The log() calls trace execution step by step. They were added while
+    # debugging a connection hang and are kept as diagnostics — if a
+    # Databricks call ever stalls, mcp_debug.log shows how far it got.
+
     try:
         log("run_query: about to sql.connect")
         with sql.connect(
@@ -58,6 +73,13 @@ def run_query(query: str, params: list) -> list[dict]:
         log(f"run_query: EXCEPTION {type(e).__name__}: {e}")
         raise
 
+
+# --- MCP TOOLS ---
+# Each function below is exposed to the agent as a callable tool.
+# The docstring is what the LLM reads to decide WHEN to use the tool,
+# so it must clearly describe what the tool does. The function is async
+# and offloads the blocking DB call to a thread so the server's event
+# loop is never frozen (this was the fix for the earlier execution hang).
 
 @mcp.tool()
 async def get_customer(customer_name: str) -> list[dict]:
@@ -107,6 +129,10 @@ async def get_billing_issues() -> list[dict]:
     """
     return await asyncio.to_thread(run_query, query, [])
 
+
+# Genie tool — for open-ended/analytical questions the fixed tools above
+# can't answer. Instead of a pre-written query, it sends the natural-language
+# question to Databricks Genie, which generates and runs the SQL itself.
 @mcp.tool()
 async def ask_genie(question: str) -> dict:
     """
@@ -120,7 +146,10 @@ async def ask_genie(question: str) -> dict:
     log(f"ask_genie: called with question={question}")
     return await asyncio.to_thread(_run_genie, question)
 
-
+# Internal helper for the Genie tool. Genie is asynchronous on Databricks'
+# side — start_conversation_and_wait submits the question and blocks until
+# Genie finishes generating SQL, running it, and returning an answer. The
+# answer text lives inside the response's "attachments", which we extract below.
 def _run_genie(question: str) -> dict:
     """Internal helper — blocking Genie call via the Databricks SDK."""
     log("_run_genie: entered")
@@ -156,6 +185,9 @@ def _run_genie(question: str) -> dict:
     log(f"_run_genie: returning answer")
     return result
 
-
+# Start the server over HTTP (not stdio). Running as a standalone web
+# service on localhost:8000 keeps the Databricks connector in its own
+# clean process — the stdio subprocess approach caused the connector to
+# hang on Windows. The agent connects to this URL to discover and call tools.
 if __name__ == "__main__":
     mcp.run(transport="http", host="127.0.0.1", port=8000)
