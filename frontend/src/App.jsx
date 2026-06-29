@@ -49,7 +49,10 @@ function App() {
       setLoading(false);
     }
   }
-
+  function newChat() {
+    setMessages([]);
+    setInput("");
+  }
   return (
     <div className="app">
       {/* Sidebar */}
@@ -75,8 +78,11 @@ function App() {
       {/* Main chat panel */}
       <main className="chat">
         <header className="chat-head">
-          <span className="chat-title">Resolution Assistant</span>
-          <span className="chat-sub">Ask about billing, invoices, and accounts</span>
+          <div className="chat-head-text">
+            <span className="chat-title">Resolution Assistant</span>
+            <span className="chat-sub">Ask about billing, invoices, and accounts</span>
+          </div>
+          <button className="new-chat" onClick={newChat}>New chat</button>
         </header>
 
         <div className="messages" ref={scrollRef}>

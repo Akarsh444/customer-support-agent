@@ -51,8 +51,23 @@ body { margin: 0; }
 .chat-head {
   padding: 16px 24px;
   border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
+.chat-head-text { display: flex; flex-direction: column; gap: 2px; }
+.new-chat {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  color: var(--charcoal);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+.new-chat:hover { border-color: var(--orange); background: #FFF8F4; }
 .chat-title { font-size: 15px; font-weight: 600; }
 .chat-sub { font-size: 12.5px; color: var(--muted); }
 
