@@ -14,7 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from agents.data_agent import run_data_agent
+from agents.supervisor import run_supervisor
 
 app = FastAPI(title="Customer Support Data Agent API")
 
@@ -50,5 +50,5 @@ async def ask(request: AskRequest):
     Receive a question from the UI, run the Data Agent on it,
     and return the grounded answer.
     """
-    answer = await run_data_agent(request.question)
+    answer = await run_supervisor(request.question)
     return AskResponse(answer=answer)

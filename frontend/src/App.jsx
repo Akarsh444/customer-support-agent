@@ -7,9 +7,9 @@ const API_URL = "http://localhost:8001/ask";
 // Example questions shown as clickable chips
 const EXAMPLES = [
   "Why was Acme Corp overbilled in May 2025?",
-  "Which customer had the largest overbilling?",
-  "How many customers were overbilled, and the average amount?",
-  "How many support tickets are still open?",
+  "Which customers were overbilled, and the average amount?",
+  "Why was Umbrella Co overbilled, and open a case for it",
+  "Set account C015 to Active",
 ];
 
 function App() {
@@ -64,14 +64,14 @@ function App() {
 
         <div className="cap-label">Capabilities</div>
         <ul className="cap-list">
-          <li><span className="dot" /> Billing lookups</li>
+          <li><span className="dot" /> Billing &amp; account lookups</li>
           <li><span className="dot" /> Analytics &amp; trends</li>
-          <li><span className="dot" /> Account details</li>
-          <li><span className="dot" /> Support tickets</li>
+          <li><span className="dot" /> Apply billing corrections</li>
+          <li><span className="dot" /> Create support cases</li>
         </ul>
 
         <div className="sidebar-foot">
-          Data Agent · MVP
+          Supervisor · MVP
         </div>
       </aside>
 
